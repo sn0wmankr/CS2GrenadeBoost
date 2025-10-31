@@ -19,7 +19,7 @@ A Counter-Strike 2 plugin that allows players to boost themselves by throwing HE
 
 ## 📦 Requirements
 
-- **[CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp)** v1.0.342 or newer
+- **[CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp)** v1.0.345 or newer
 - **.NET 8.0 SDK** (for building from source)
 - **Compatible with other plugins** including WeaponPaints
 
@@ -147,16 +147,16 @@ Velocity Cap: MaxBoostVelocity (prevents excessive speeds)
 - **Note**: This is a server-wide setting that affects all players
 
 **HE Grenade Damage:**
-- Uses **Native Hook** on `CBaseEntity_TakeDamageOld` function (VirtualFunction hooking)
-- Intercepts damage calculation **before** it's applied to player
-- Sets damage to `0` when source is HE grenade (`hegrenade` in weapon's DesignerName)
-- **Perfect blocking**: Damage never touches the player's health
-- **No post-processing**: No need to restore health, armor, or track states
-- **Most efficient**: Blocks at source, minimal overhead
-- **Note**: Uses native memory hooking, may conflict with other plugins that hook TakeDamage
+- Uses **`sv_hegrenade_damage_multiplier` ConVar** (engine-level damage control)
+- Set to `0.0` when `DisableHEGrenadeDamage` is true (no HE grenade damage)
+- Set to `1.0` (or original value) when disabled or plugin unloads
+- **Perfect blocking**: Damage calculation happens at engine level
+- **Most reliable**: No complex hooks, pure ConVar approach
+- **Best compatibility**: No conflicts with other plugins
+- **Note**: This is a server-wide setting that affects all players
 
 **Damage Control:**
-- HE Grenade Damage: Native hook blocks damage before it's applied (perfect blocking)
+- HE Grenade Damage: Uses server ConVar `sv_hegrenade_damage_multiplier` (0 = disabled, 1 = enabled)
 - Fall Damage: Uses server ConVar `sv_falldamage_scale` (0 = disabled, 1 = enabled)
 
 ## 🐛 Troubleshooting

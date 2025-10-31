@@ -7,8 +7,6 @@ using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Cvars;
-using CounterStrikeSharp.API.Modules.Memory;
-using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 using System.Numerics;
 using System.Text.Json.Serialization;
 
@@ -54,7 +52,7 @@ public class GrenadeBoostConfig : BasePluginConfig
 public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
 {
     public override string ModuleName => "CS2GrenadeBoost";
-    public override string ModuleVersion => "1.0.1";
+    public override string ModuleVersion => "1.0.2";
     public override string ModuleAuthor => "sn0wman";
     public override string ModuleDescription => "Allows players to boost themselves by throwing grenades on the ground";
 
@@ -62,10 +60,9 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
 
     private ConVar? _weaponAccuracyNospreadConVar = null;
     private ConVar? _svFallDamageScaleConVar = null;
+    private ConVar? _svHegrenadeDamageMultiplierConVar = null;
     private float _originalFallDamageScale = 1.0f;
-    
-    // Native hook for TakeDamage
-    private MemoryFunctionWithReturn<CCSPlayerPawn, CTakeDamageInfo, CCSPlayerPawn, int>? _takeDamageFunc = null;
+    private float _originalHegrenadeDamageMultiplier = 1.0f;
 
     public void OnConfigParsed(GrenadeBoostConfig config)
     {
@@ -98,6 +95,16 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
                     Console.WriteLine($"[GrenadeBoost] Found sv_falldamage_scale ConVar (original value: {_originalFallDamageScale})");
                 }
             }
+            
+            if (Config.DisableHEGrenadeDamage)
+            {
+                _svHegrenadeDamageMultiplierConVar = ConVar.Find("sv_hegrenade_damage_multiplier");
+                if (_svHegrenadeDamageMultiplierConVar != null)
+                {
+                    _originalHegrenadeDamageMultiplier = _svHegrenadeDamageMultiplierConVar.GetPrimitiveValue<float>();
+                    Console.WriteLine($"[GrenadeBoost] Found sv_hegrenade_damage_multiplier ConVar (original value: {_originalHegrenadeDamageMultiplier})");
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -114,14 +121,6 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
             RegisterEventHandler<EventHegrenadeDetonate>(OnHeGrenadeDetonate);
             RegisterEventHandler<EventRoundStart>(OnRoundStart);
             
-            // Setup TakeDamage hook for HE grenade damage blocking
-            if (Config.DisableHEGrenadeDamage)
-            {
-                _takeDamageFunc = new MemoryFunctionWithReturn<CCSPlayerPawn, CTakeDamageInfo, CCSPlayerPawn, int>(GameData.GetSignature("CBaseEntity_TakeDamageOld"));
-                _takeDamageFunc.Hook(OnTakeDamage, HookMode.Pre);
-                Console.WriteLine("[GrenadeBoost] Hooked TakeDamage for HE grenade damage blocking");
-            }
-            
             Console.WriteLine("[GrenadeBoost] Plugin loaded successfully!");
             Console.WriteLine($"[GrenadeBoost] Config Version: {Config.Version}");
             if (Config.AutoGiveHEGrenade)
@@ -134,7 +133,7 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
             }
             if (Config.DisableHEGrenadeDamage)
             {
-                Console.WriteLine("[GrenadeBoost] HE grenade damage disabled (native hook method)");
+                Console.WriteLine("[GrenadeBoost] HE grenade damage disabled (using sv_hegrenade_damage_multiplier)");
             }
             if (Config.DisableFallDamage)
             {
@@ -148,43 +147,8 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
         }
     }
 
-    private HookResult OnTakeDamage(DynamicHook hook)
-    {
-        try
-        {
-            if (!Config.DisableHEGrenadeDamage)
-                return HookResult.Continue;
-
-            var damageInfo = hook.GetParam<CTakeDamageInfo>(1);
-            if (damageInfo == null)
-                return HookResult.Continue;
-
-            // Check if damage is from HE grenade by checking the ability (weapon)
-            var weapon = damageInfo.Ability.Value;
-            if (weapon != null && weapon.DesignerName != null && weapon.DesignerName.Contains("hegrenade"))
-            {
-                // Block the damage by setting it to 0
-                damageInfo.Damage = 0;
-                return HookResult.Changed;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[GrenadeBoost] Error in OnTakeDamage: {ex.Message}");
-        }
-
-        return HookResult.Continue;
-    }
-
     public override void Unload(bool hotReload)
     {
-        // Unhook TakeDamage
-        if (_takeDamageFunc != null)
-        {
-            _takeDamageFunc.Unhook(OnTakeDamage, HookMode.Pre);
-            Console.WriteLine("[GrenadeBoost] Unhooked TakeDamage");
-        }
-        
         // Restore ConVars on unload
         try
         {
@@ -198,6 +162,12 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
             {
                 _svFallDamageScaleConVar.SetValue(_originalFallDamageScale);
                 Console.WriteLine($"[GrenadeBoost] Restored sv_falldamage_scale to {_originalFallDamageScale}");
+            }
+            
+            if (_svHegrenadeDamageMultiplierConVar != null)
+            {
+                _svHegrenadeDamageMultiplierConVar.SetValue(_originalHegrenadeDamageMultiplier);
+                Console.WriteLine($"[GrenadeBoost] Restored sv_hegrenade_damage_multiplier to {_originalHegrenadeDamageMultiplier}");
             }
         }
         catch (Exception ex)
@@ -220,6 +190,11 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
             if (Config.DisableFallDamage && _svFallDamageScaleConVar != null)
             {
                 _svFallDamageScaleConVar.SetValue(0.0f);
+            }
+            
+            if (Config.DisableHEGrenadeDamage && _svHegrenadeDamageMultiplierConVar != null)
+            {
+                _svHegrenadeDamageMultiplierConVar.SetValue(0.0f);
             }
 
             if (!Config.AutoGiveHEGrenade)
