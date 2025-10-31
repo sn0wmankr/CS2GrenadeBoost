@@ -1,0 +1,12 @@
+# Ignore everything
+*
+
+# But keep these files
+!GrenadeBoost.cs
+!GrenadeBoost.csproj
+!README.md
+!.gitignore
+
+# Keep examples folder
+!examples/
+!examples/**/*

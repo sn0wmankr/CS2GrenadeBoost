@@ -1,21 +1,22 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core.Attributes;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Utils;
 using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Memory;
+using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 using System.Numerics;
 using System.Text.Json.Serialization;
 
 namespace GrenadeBoost;
 
+[MinimumApiVersion(200)]
 public class GrenadeBoostConfig : BasePluginConfig
 {
-    [JsonPropertyName("ConfigVersion")]
-    public int ConfigVersion { get; set; } = 1;
-
     [JsonPropertyName("Enabled")]
     public bool Enabled { get; set; } = true;
 
@@ -53,71 +54,54 @@ public class GrenadeBoostConfig : BasePluginConfig
 public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
 {
     public override string ModuleName => "CS2GrenadeBoost";
-    public override string ModuleVersion => "1.0.0";
+    public override string ModuleVersion => "1.0.1";
     public override string ModuleAuthor => "sn0wman";
     public override string ModuleDescription => "Allows players to boost themselves by throwing grenades on the ground";
 
-    private const int CURRENT_CONFIG_VERSION = 1;
     public GrenadeBoostConfig Config { get; set; } = new();
+
+    private ConVar? _weaponAccuracyNospreadConVar = null;
+    private ConVar? _svFallDamageScaleConVar = null;
+    private float _originalFallDamageScale = 1.0f;
+    
+    // Native hook for TakeDamage
+    private MemoryFunctionWithReturn<CCSPlayerPawn, CTakeDamageInfo, CCSPlayerPawn, int>? _takeDamageFunc = null;
 
     public void OnConfigParsed(GrenadeBoostConfig config)
     {
-        // Check config version and update if needed
-        if (config.ConfigVersion < CURRENT_CONFIG_VERSION)
-        {
-            Console.WriteLine($"[GrenadeBoost] Config version mismatch! Current: {config.ConfigVersion}, Required: {CURRENT_CONFIG_VERSION}");
-            Console.WriteLine($"[GrenadeBoost] Updating config to version {CURRENT_CONFIG_VERSION}...");
-            
-            // Force update to new version with default values
-            config.ConfigVersion = CURRENT_CONFIG_VERSION;
-            config.HorizontalBoost = 800.0f;
-            config.VerticalBoost = 400.0f;
-            config.EnableAirAccuracy = false;
-            config.DisableHEGrenadeDamage = false;
-            config.DisableFallDamage = false;
-
-            // Save updated config
-            var configPath = Path.Combine(ModuleDirectory, "../../configs/plugins/GrenadeBoost/GrenadeBoost.json");
-            try
-            {
-                var json = System.Text.Json.JsonSerializer.Serialize(config, new System.Text.Json.JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
-                });
-                File.WriteAllText(configPath, json);
-                Console.WriteLine($"[GrenadeBoost] Config updated successfully to version {CURRENT_CONFIG_VERSION}!");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[GrenadeBoost] Failed to save updated config: {ex.Message}");
-            }
-        }
-
         Config = config;
         
-        // Ensure config file exists - create if missing
-        var configFilePath = Path.Combine(ModuleDirectory, "../../configs/plugins/GrenadeBoost/GrenadeBoost.json");
-        if (!File.Exists(configFilePath))
+        // Ensure Version is set correctly
+        if (Config.Version < 2)
         {
-            try
+            Config.Version = 2;
+        }
+        
+        // Setup ConVars
+        try
+        {
+            if (Config.EnableAirAccuracy)
             {
-                var directory = Path.GetDirectoryName(configFilePath);
-                if (!Directory.Exists(directory))
+                _weaponAccuracyNospreadConVar = ConVar.Find("weapon_accuracy_nospread");
+                if (_weaponAccuracyNospreadConVar != null)
                 {
-                    Directory.CreateDirectory(directory!);
+                    Console.WriteLine("[GrenadeBoost] Found weapon_accuracy_nospread ConVar for air accuracy");
                 }
-                
-                var json = System.Text.Json.JsonSerializer.Serialize(Config, new System.Text.Json.JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
-                });
-                File.WriteAllText(configFilePath, json);
-                Console.WriteLine($"[GrenadeBoost] Config file created at {configFilePath}");
             }
-            catch (Exception ex)
+            
+            if (Config.DisableFallDamage)
             {
-                Console.WriteLine($"[GrenadeBoost] Failed to create config: {ex.Message}");
+                _svFallDamageScaleConVar = ConVar.Find("sv_falldamage_scale");
+                if (_svFallDamageScaleConVar != null)
+                {
+                    _originalFallDamageScale = _svFallDamageScaleConVar.GetPrimitiveValue<float>();
+                    Console.WriteLine($"[GrenadeBoost] Found sv_falldamage_scale ConVar (original value: {_originalFallDamageScale})");
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[GrenadeBoost] Error finding ConVars: {ex.Message}");
         }
     }
 
@@ -125,186 +109,168 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
 
     public override void Load(bool hotReload)
     {
-        RegisterEventHandler<EventHegrenadeDetonate>(OnHeGrenadeDetonate);
-        RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt);
-        RegisterEventHandler<EventRoundStart>(OnRoundStart);
-        
-        // Register tick listener for air accuracy
-        if (Config.EnableAirAccuracy)
+        try
         {
-            RegisterListener<Listeners.OnTick>(OnTick);
+            RegisterEventHandler<EventHegrenadeDetonate>(OnHeGrenadeDetonate);
+            RegisterEventHandler<EventRoundStart>(OnRoundStart);
+            
+            // Setup TakeDamage hook for HE grenade damage blocking
+            if (Config.DisableHEGrenadeDamage)
+            {
+                _takeDamageFunc = new MemoryFunctionWithReturn<CCSPlayerPawn, CTakeDamageInfo, CCSPlayerPawn, int>(GameData.GetSignature("CBaseEntity_TakeDamageOld"));
+                _takeDamageFunc.Hook(OnTakeDamage, HookMode.Pre);
+                Console.WriteLine("[GrenadeBoost] Hooked TakeDamage for HE grenade damage blocking");
+            }
+            
+            Console.WriteLine("[GrenadeBoost] Plugin loaded successfully!");
+            Console.WriteLine($"[GrenadeBoost] Config Version: {Config.Version}");
+            if (Config.AutoGiveHEGrenade)
+            {
+                Console.WriteLine($"[GrenadeBoost] Auto give HE grenade enabled (Max: {Config.MaxHEGrenades})");
+            }
+            if (Config.EnableAirAccuracy)
+            {
+                Console.WriteLine("[GrenadeBoost] Air accuracy enabled (using weapon_accuracy_nospread)");
+            }
+            if (Config.DisableHEGrenadeDamage)
+            {
+                Console.WriteLine("[GrenadeBoost] HE grenade damage disabled (native hook method)");
+            }
+            if (Config.DisableFallDamage)
+            {
+                Console.WriteLine("[GrenadeBoost] Fall damage disabled (using sv_falldamage_scale)");
+            }
         }
-        
-        Console.WriteLine("[GrenadeBoost] Plugin loaded successfully!");
-        Console.WriteLine($"[GrenadeBoost] Config Version: {Config.ConfigVersion}");
-        if (Config.AutoGiveHEGrenade)
+        catch (Exception ex)
         {
-            Console.WriteLine($"[GrenadeBoost] Auto give HE grenade enabled (Max: {Config.MaxHEGrenades})");
-        }
-        if (Config.EnableAirAccuracy)
-        {
-            Console.WriteLine("[GrenadeBoost] Air accuracy enabled");
-        }
-        if (Config.DisableHEGrenadeDamage)
-        {
-            Console.WriteLine("[GrenadeBoost] HE grenade damage disabled");
-        }
-        if (Config.DisableFallDamage)
-        {
-            Console.WriteLine("[GrenadeBoost] Fall damage disabled");
+            Console.WriteLine($"[GrenadeBoost] Error during plugin load: {ex.Message}");
+            throw;
         }
     }
 
-    private void OnTick()
+    private HookResult OnTakeDamage(DynamicHook hook)
     {
         try
         {
-            // Air accuracy check
-            if (Config.EnableAirAccuracy)
+            if (!Config.DisableHEGrenadeDamage)
+                return HookResult.Continue;
+
+            var damageInfo = hook.GetParam<CTakeDamageInfo>(1);
+            if (damageInfo == null)
+                return HookResult.Continue;
+
+            // Check if damage is from HE grenade by checking the ability (weapon)
+            var weapon = damageInfo.Ability.Value;
+            if (weapon != null && weapon.DesignerName != null && weapon.DesignerName.Contains("hegrenade"))
             {
-                CheckAirAccuracy();
+                // Block the damage by setting it to 0
+                damageInfo.Damage = 0;
+                return HookResult.Changed;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Silent catch to prevent console spam
+            Console.WriteLine($"[GrenadeBoost] Error in OnTakeDamage: {ex.Message}");
         }
+
+        return HookResult.Continue;
     }
 
-    private void CheckAirAccuracy()
+    public override void Unload(bool hotReload)
     {
-        var players = Utilities.GetPlayers();
-        foreach (var player in players)
+        // Unhook TakeDamage
+        if (_takeDamageFunc != null)
         {
-            if (player == null || !player.IsValid || !player.PawnIsAlive)
-                continue;
-
-            var playerPawn = player.PlayerPawn.Value;
-            if (playerPawn == null)
-                continue;
-
-            // Check if player is in the air (not on ground)
-            bool isOnGround = (playerPawn.Flags & (uint)PlayerFlags.FL_ONGROUND) != 0;
-
-            var activeWeapon = playerPawn.WeaponServices?.ActiveWeapon.Value;
-            if (activeWeapon != null && activeWeapon.IsValid)
+            _takeDamageFunc.Unhook(OnTakeDamage, HookMode.Pre);
+            Console.WriteLine("[GrenadeBoost] Unhooked TakeDamage");
+        }
+        
+        // Restore ConVars on unload
+        try
+        {
+            if (_weaponAccuracyNospreadConVar != null)
             {
-                var weaponData = activeWeapon.As<CCSWeaponBase>();
-                if (weaponData != null && !isOnGround)
-                {
-                    // Set inaccuracy to 0 for perfect air accuracy
-                    Schema.SetSchemaValue(activeWeapon.Handle, "CCSWeaponBaseVData", "m_fInaccuracyStand", 0.0f);
-                    Schema.SetSchemaValue(activeWeapon.Handle, "CCSWeaponBaseVData", "m_fInaccuracyCrouch", 0.0f);
-                    Schema.SetSchemaValue(activeWeapon.Handle, "CCSWeaponBaseVData", "m_fInaccuracyJump", 0.0f);
-                    Schema.SetSchemaValue(activeWeapon.Handle, "CCSWeaponBaseVData", "m_fInaccuracyLand", 0.0f);
-                    Schema.SetSchemaValue(activeWeapon.Handle, "CCSWeaponBaseVData", "m_fInaccuracyMove", 0.0f);
-                }
+                _weaponAccuracyNospreadConVar.SetValue(false);
+                Console.WriteLine("[GrenadeBoost] Restored weapon_accuracy_nospread to default");
             }
+            
+            if (_svFallDamageScaleConVar != null)
+            {
+                _svFallDamageScaleConVar.SetValue(_originalFallDamageScale);
+                Console.WriteLine($"[GrenadeBoost] Restored sv_falldamage_scale to {_originalFallDamageScale}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[GrenadeBoost] Error restoring ConVars: {ex.Message}");
         }
     }
 
     [GameEventHandler]
     public HookResult OnRoundStart(EventRoundStart @event, GameEventInfo info)
     {
-        if (!Config.AutoGiveHEGrenade)
-            return HookResult.Continue;
-
         try
         {
+            // Apply ConVar settings at round start
+            if (Config.EnableAirAccuracy && _weaponAccuracyNospreadConVar != null)
+            {
+                _weaponAccuracyNospreadConVar.SetValue(true);
+            }
+            
+            if (Config.DisableFallDamage && _svFallDamageScaleConVar != null)
+            {
+                _svFallDamageScaleConVar.SetValue(0.0f);
+            }
+
+            if (!Config.AutoGiveHEGrenade)
+                return HookResult.Continue;
+
             // Give HE grenade to all players at round start
             Server.NextFrame(() =>
             {
-                var players = Utilities.GetPlayers();
-                foreach (var player in players)
+                try
                 {
-                    if (player == null || !player.IsValid || !player.PawnIsAlive)
-                        continue;
-
-                    var playerPawn = player.PlayerPawn.Value;
-                    if (playerPawn == null)
-                        continue;
-
-                    // Count current HE grenades
-                    int heGrenadeCount = 0;
-                    var weapons = playerPawn.WeaponServices?.MyWeapons;
-                    if (weapons != null)
+                    var players = Utilities.GetPlayers();
+                    foreach (var player in players)
                     {
-                        foreach (var weaponHandle in weapons)
+                        if (player == null || !player.IsValid || !player.PawnIsAlive)
+                            continue;
+
+                        var playerPawn = player.PlayerPawn.Value;
+                        if (playerPawn == null)
+                            continue;
+
+                        // Count current HE grenades
+                        int heGrenadeCount = 0;
+                        var weapons = playerPawn.WeaponServices?.MyWeapons;
+                        if (weapons != null)
                         {
-                            if (weaponHandle?.Value?.DesignerName.Contains("hegrenade") == true)
+                            foreach (var weaponHandle in weapons)
                             {
-                                heGrenadeCount++;
+                                if (weaponHandle?.Value?.DesignerName.Contains("hegrenade") == true)
+                                {
+                                    heGrenadeCount++;
+                                }
                             }
                         }
-                    }
 
-                    // Give grenades up to max count
-                    int toGive = Config.MaxHEGrenades - heGrenadeCount;
-                    for (int i = 0; i < toGive; i++)
-                    {
-                        player.GiveNamedItem("weapon_hegrenade");
+                        // Give grenades up to max count
+                        int toGive = Config.MaxHEGrenades - heGrenadeCount;
+                        for (int i = 0; i < toGive; i++)
+                        {
+                            player.GiveNamedItem("weapon_hegrenade");
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[GrenadeBoost] Error giving grenades: {ex.Message}");
                 }
             });
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[GrenadeBoost] Error in OnRoundStart: {ex.Message}");
-        }
-
-        return HookResult.Continue;
-    }
-
-    [GameEventHandler]
-    public HookResult OnPlayerHurt(EventPlayerHurt @event, GameEventInfo info)
-    {
-        try
-        {
-            var player = @event.Userid;
-            if (player == null || !player.IsValid)
-                return HookResult.Continue;
-
-            var attacker = @event.Attacker;
-            var weapon = @event.Weapon;
-            var damage = @event.Health;
-
-            // Disable HE grenade damage only
-            if (Config.DisableHEGrenadeDamage && weapon == "hegrenade")
-            {
-                var playerPawn = player.PlayerPawn.Value;
-                if (playerPawn != null && playerPawn.Health > 0)
-                {
-                    // Restore health lost from grenade
-                    playerPawn.Health += damage;
-                    if (@event.Armor > 0)
-                    {
-                        playerPawn.ArmorValue = @event.Armor;
-                    }
-                    Utilities.SetStateChanged(playerPawn, "CBaseEntity", "m_iHealth");
-                }
-                return HookResult.Handled;
-            }
-
-            // Disable fall damage
-            if (Config.DisableFallDamage && weapon == "worldspawn")
-            {
-                // Check if it's fall damage (worldspawn with no attacker or self-damage)
-                if (attacker == null || attacker == player)
-                {
-                    var playerPawn = player.PlayerPawn.Value;
-                    if (playerPawn != null && playerPawn.Health > 0)
-                    {
-                        // Restore health lost from fall damage
-                        playerPawn.Health += damage;
-                        Utilities.SetStateChanged(playerPawn, "CBaseEntity", "m_iHealth");
-                    }
-                    return HookResult.Handled;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[GrenadeBoost] Error in OnPlayerHurt: {ex.Message}");
         }
 
         return HookResult.Continue;
@@ -319,7 +285,7 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
                 return HookResult.Continue;
 
             var userId = @event.Userid;
-            if (userId == null)
+            if (userId == null || !userId.IsValid)
                 return HookResult.Continue;
 
             // Get explosion position
@@ -331,13 +297,16 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
 
             // Find all players within explosion radius
             var players = Utilities.GetPlayers();
+            if (players == null)
+                return HookResult.Continue;
+
             foreach (var player in players)
             {
                 if (player == null || !player.IsValid || !player.PawnIsAlive)
                     continue;
 
                 var playerPawn = player.PlayerPawn.Value;
-                if (playerPawn == null)
+                if (playerPawn == null || !playerPawn.IsValid)
                     continue;
 
                 var playerPos = playerPawn.AbsOrigin;
@@ -410,6 +379,7 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
         }
         catch (Exception ex)
         {
+            // Log error but don't crash the plugin
             Console.WriteLine($"[GrenadeBoost] Error in OnHeGrenadeDetonate: {ex.Message}");
         }
 

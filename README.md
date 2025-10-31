@@ -19,8 +19,9 @@ A Counter-Strike 2 plugin that allows players to boost themselves by throwing HE
 
 ## 📦 Requirements
 
-- **[CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp)** v1.0.345 or newer
+- **[CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp)** v1.0.342 or newer
 - **.NET 8.0 SDK** (for building from source)
+- **Compatible with other plugins** including WeaponPaints
 
 ## 🔧 Installation
 
@@ -51,7 +52,7 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 
 ```json
 {
-  "ConfigVersion": 1,
+  "Version": 2,
   "Enabled": true,
   
   "AutoGiveHEGrenade": true,
@@ -73,7 +74,7 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | **General** |
-| `ConfigVersion` | int | `1` | Config file version (auto-managed) |
+| `Version` | int | `2` | Config file version (auto-managed) |
 | `Enabled` | bool | `true` | Master switch for the plugin |
 | **Grenade Settings** |
 | `AutoGiveHEGrenade` | bool | `true` | Automatically give HE grenades at round start |
@@ -84,9 +85,9 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 | `BoostMultiplier` | float | `1.2` | Overall boost strength multiplier |
 | `MaxBoostVelocity` | float | `3500.0` | Maximum velocity cap to prevent overspeed |
 | **Gameplay Features** |
-| `EnableAirAccuracy` | bool | `false` | Perfect AWP accuracy while airborne only |
-| `DisableHEGrenadeDamage` | bool | `false` | Negate all HE grenade damage to players |
-| `DisableFallDamage` | bool | `false` | Negate all fall damage |
+| `EnableAirAccuracy` | bool | `false` | Perfect accuracy using `weapon_accuracy_nospread 1` |
+| `DisableHEGrenadeDamage` | bool | `false` | Negate all HE grenade damage (restores health, capped at max) |
+| `DisableFallDamage` | bool | `false` | Negate all fall damage using `sv_falldamage_scale 0` |
 
 **Apply changes:** `css_plugins reload GrenadeBoost`
 
@@ -133,14 +134,30 @@ Velocity Cap: MaxBoostVelocity (prevents excessive speeds)
 ```
 
 **Air Accuracy:**
-- Uses tick-based checking (Listeners.OnTick)
-- Sets weapon inaccuracy to 0 only when player is airborne
-- Ground movement maintains normal inaccuracy
-- Uses Schema.SetSchemaValue for weapon property manipulation
+- Uses `weapon_accuracy_nospread 1` ConVar (server-wide setting)
+- Automatically enabled at round start when `EnableAirAccuracy` is true
+- Provides perfect accuracy for all weapons in all situations
+- Restored to default on plugin unload
+- **Note**: This is a server-wide setting that affects all players
+
+**Fall Damage:**
+- Uses `sv_falldamage_scale` ConVar (server-wide setting)
+- Set to `0` when `DisableFallDamage` is true (no fall damage)
+- Set to `1` (or original value) when disabled or plugin unloads
+- **Note**: This is a server-wide setting that affects all players
+
+**HE Grenade Damage:**
+- Uses **Native Hook** on `CBaseEntity_TakeDamageOld` function (VirtualFunction hooking)
+- Intercepts damage calculation **before** it's applied to player
+- Sets damage to `0` when source is HE grenade (`hegrenade` in weapon's DesignerName)
+- **Perfect blocking**: Damage never touches the player's health
+- **No post-processing**: No need to restore health, armor, or track states
+- **Most efficient**: Blocks at source, minimal overhead
+- **Note**: Uses native memory hooking, may conflict with other plugins that hook TakeDamage
 
 **Damage Control:**
-- HE Grenade Damage: Restores health immediately after damage event
-- Fall Damage: Detects and negates fall-related damage
+- HE Grenade Damage: Native hook blocks damage before it's applied (perfect blocking)
+- Fall Damage: Uses server ConVar `sv_falldamage_scale` (0 = disabled, 1 = enabled)
 
 ## 🐛 Troubleshooting
 
