@@ -1,0 +1,13 @@
+{
+  "ConfigVersion": 1,
+  "Enabled": true,
+  "AutoGiveHEGrenade": true,
+  "MaxHEGrenades": 1,
+  "HorizontalBoost": 800.0,
+  "VerticalBoost": 400.0,
+  "BoostMultiplier": 1.2,
+  "MaxBoostVelocity": 3500.0,
+  "EnableAirAccuracy": false,
+  "DisableHEGrenadeDamage": false,
+  "DisableFallDamage": false
+}
