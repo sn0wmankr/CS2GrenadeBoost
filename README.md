@@ -32,7 +32,7 @@ A Counter-Strike 2 plugin that allows players to boost themselves by throwing HE
 
 2. **Install Plugin**
    - Download `GrenadeBoost.dll` from releases
-   - Place in: `game/csgo/addons/counterstrikesharp/plugins/GrenadeBoost/`
+   - Place in: `addons/counterstrikesharp/plugins/GrenadeBoost/`
 
 3. **Load Plugin**
    - Restart server or use: `css_plugins load GrenadeBoost`
@@ -44,7 +44,7 @@ Config file auto-generates on first load. If deleted, it will be recreated autom
 
 **Location:**
 ```
-game/csgo/addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
+addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 ```
 
 ### Full Configuration
@@ -110,7 +110,7 @@ game/csgo/addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.js
 
 ```bash
 # Clone repository
-git clone <your-repo-url>
+git clone https://github.com/sn0wmankr/CS2GrenadeBoost
 cd CS2GrenadeBoost
 
 # Build
