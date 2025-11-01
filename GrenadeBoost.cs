@@ -39,7 +39,7 @@ public class GrenadeBoostConfig : BasePluginConfig
     public float MaxBoostVelocity { get; set; } = 3500.0f;
 
     [JsonPropertyName("ExplosionRadius")]
-    public float ExplosionRadius { get; set; } = 350.0f;
+    public float ExplosionRadius { get; set; } = 150.0f;
 
     // === Gameplay Features ===
     [JsonPropertyName("EnableAirAccuracy")]
@@ -52,7 +52,7 @@ public class GrenadeBoostConfig : BasePluginConfig
     public bool DisableFallDamage { get; set; } = false;
 
     [JsonPropertyName("OnlyBoostInAir")]
-    public bool OnlyBoostInAir { get; set; } = false;
+    public bool OnlyBoostInAir { get; set; } = true;
 }
 
 public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>

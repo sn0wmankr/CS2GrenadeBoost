@@ -62,12 +62,12 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
   "VerticalBoost": 400.0,
   "BoostMultiplier": 1.2,
   "MaxBoostVelocity": 3500.0,
-  "ExplosionRadius": 350.0,
+  "ExplosionRadius": 150.0,
   
   "EnableAirAccuracy": false,
   "DisableHEGrenadeDamage": false,
   "DisableFallDamage": false,
-  "OnlyBoostInAir": false
+  "OnlyBoostInAir": true
 }
 ```
 
@@ -86,12 +86,12 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 | `VerticalBoost` | float | `400.0` | Vertical boost force (upward) |
 | `BoostMultiplier` | float | `1.2` | Overall boost strength multiplier |
 | `MaxBoostVelocity` | float | `3500.0` | Maximum velocity cap to prevent overspeed |
-| `ExplosionRadius` | float | `350.0` | Explosion radius in units (max distance for boost) |
+| `ExplosionRadius` | float | `150.0` | Explosion radius in units (max distance for boost) |
 | **Gameplay Features** |
 | `EnableAirAccuracy` | bool | `false` | Perfect accuracy using `weapon_accuracy_nospread 1` |
 | `DisableHEGrenadeDamage` | bool | `false` | Negate all HE grenade damage (restores health, capped at max) |
 | `DisableFallDamage` | bool | `false` | Negate all fall damage using `sv_falldamage_scale 0` |
-| `OnlyBoostInAir` | bool | `false` | Only boost players in the air (ignore players on ground) |
+| `OnlyBoostInAir` | bool | `true` | Only boost players in the air (ignore players on ground) |
 
 **Apply changes:** `css_plugins reload GrenadeBoost`
 
@@ -128,7 +128,7 @@ dotnet build -c Release
 
 **Physics Calculation:**
 ```
-Explosion Radius: Configurable (default 350 units)
+Explosion Radius: Configurable (default 150 units ≈ 3.8m)
 Distance Factor: (1 - distance/radius)
 Boost Direction: Horizontal (XZ plane) + Vertical (Y axis)
 Final Force: 
