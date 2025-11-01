@@ -52,7 +52,7 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 
 ```json
 {
-  "Version": 3,
+  "Version": 4,
   "Enabled": true,
   
   "AutoGiveHEGrenade": true,
@@ -65,8 +65,8 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
   "ExplosionRadius": 150.0,
   
   "EnableAirAccuracy": false,
-  "DisableHEGrenadeDamage": false,
-  "DisableFallDamage": false,
+  "DisableHEGrenadeDamage": true,
+  "DisableFallDamage": true,
   "OnlyBoostInAir": false,
   "IgnoreTeamGrenades": true
 }
@@ -77,7 +77,7 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | **General** |
-| `Version` | int | `3` | Config file version (auto-managed) |
+| `Version` | int | `4` | Config file version (auto-managed) |
 | `Enabled` | bool | `true` | Master switch for the plugin |
 | **Grenade Settings** |
 | `AutoGiveHEGrenade` | bool | `true` | Automatically give HE grenades at round start |
@@ -90,10 +90,10 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 | `ExplosionRadius` | float | `150.0` | Explosion radius in units (max distance for boost) |
 | **Gameplay Features** |
 | `EnableAirAccuracy` | bool | `false` | Perfect accuracy using `weapon_accuracy_nospread 1` |
-| `DisableHEGrenadeDamage` | bool | `false` | Negate all HE grenade damage (restores health, capped at max) |
-| `DisableFallDamage` | bool | `false` | Negate all fall damage using `sv_falldamage_scale 0` |
+| `DisableHEGrenadeDamage` | bool | `true` | Negate all HE grenade damage (restores health, capped at max) |
+| `DisableFallDamage` | bool | `true` | Negate all fall damage using `sv_falldamage_scale 0` |
 | `OnlyBoostInAir` | bool | `false` | Only boost players in the air (ignore players on ground) |
-| `IgnoreTeamGrenades` | bool | `true` | Ignore same team grenades (only boost from enemy grenades) |
+| `IgnoreTeamGrenades` | bool | `true` | Ignore same team grenades (only boost from own/enemy grenades) |
 
 **Apply changes:** `css_plugins reload GrenadeBoost`
 

@@ -46,10 +46,10 @@ public class GrenadeBoostConfig : BasePluginConfig
     public bool EnableAirAccuracy { get; set; } = false;
 
     [JsonPropertyName("DisableHEGrenadeDamage")]
-    public bool DisableHEGrenadeDamage { get; set; } = false;
+    public bool DisableHEGrenadeDamage { get; set; } = true;
 
     [JsonPropertyName("DisableFallDamage")]
-    public bool DisableFallDamage { get; set; } = false;
+    public bool DisableFallDamage { get; set; } = true;
 
     [JsonPropertyName("OnlyBoostInAir")]
     public bool OnlyBoostInAir { get; set; } = false;
@@ -61,7 +61,7 @@ public class GrenadeBoostConfig : BasePluginConfig
 public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
 {
     public override string ModuleName => "CS2GrenadeBoost";
-    public override string ModuleVersion => "1.0.3";
+    public override string ModuleVersion => "1.0.4";
     public override string ModuleAuthor => "sn0wman";
     public override string ModuleDescription => "Allows players to boost themselves by throwing grenades on the ground";
 
@@ -78,9 +78,9 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
         Config = config;
         
         // Ensure Version is set correctly
-        if (Config.Version < 3)
+        if (Config.Version < 4)
         {
-            Config.Version = 3;
+            Config.Version = 4;
         }
         
         // Setup ConVars
@@ -120,8 +120,6 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
             Console.WriteLine($"[GrenadeBoost] Error finding ConVars: {ex.Message}");
         }
     }
-
-    private Dictionary<IntPtr, bool> _trackedGrenades = new();
 
     public override void Load(bool hotReload)
     {
@@ -300,8 +298,8 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
                 // Check if should ignore team grenades
                 if (Config.IgnoreTeamGrenades)
                 {
-                    // Skip if grenade thrower and player are on same team
-                    if (userId.TeamNum == player.TeamNum)
+                    // Skip if grenade thrower and player are on same team BUT not the same person
+                    if (userId.TeamNum == player.TeamNum && userId != player)
                     {
                         continue;
                     }

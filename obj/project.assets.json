@@ -2560,11 +2560,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Administrator\\Desktop\\CS2\\AWP\\GrenadeBoost.csproj",
+      "projectUniqueName": "C:\\Users\\Administrator\\Desktop\\CS2\\GrenadeBoost\\GrenadeBoost.csproj",
       "projectName": "GrenadeBoost",
-      "projectPath": "C:\\Users\\Administrator\\Desktop\\CS2\\AWP\\GrenadeBoost.csproj",
+      "projectPath": "C:\\Users\\Administrator\\Desktop\\CS2\\GrenadeBoost\\GrenadeBoost.csproj",
       "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Administrator\\Desktop\\CS2\\AWP\\obj\\",
+      "outputPath": "C:\\Users\\Administrator\\Desktop\\CS2\\GrenadeBoost\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config",

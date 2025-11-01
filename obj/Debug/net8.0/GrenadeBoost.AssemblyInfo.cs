@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GrenadeBoost")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+264080b8f60b4492bdf3f83565a8cdf54100a344")]
 [assembly: System.Reflection.AssemblyProductAttribute("GrenadeBoost")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GrenadeBoost")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
