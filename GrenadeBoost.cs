@@ -52,7 +52,10 @@ public class GrenadeBoostConfig : BasePluginConfig
     public bool DisableFallDamage { get; set; } = false;
 
     [JsonPropertyName("OnlyBoostInAir")]
-    public bool OnlyBoostInAir { get; set; } = true;
+    public bool OnlyBoostInAir { get; set; } = false;
+
+    [JsonPropertyName("OnlyBoostFromOwnTeam")]
+    public bool OnlyBoostFromOwnTeam { get; set; } = false;
 }
 
 public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
@@ -293,6 +296,16 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
                 var playerPos = playerPawn.AbsOrigin;
                 if (playerPos == null)
                     continue;
+
+                // Check if should only boost from own team
+                if (Config.OnlyBoostFromOwnTeam)
+                {
+                    // Skip if grenade thrower and player are on different teams
+                    if (userId.TeamNum != player.TeamNum)
+                    {
+                        continue;
+                    }
+                }
 
                 // Check if player is on ground (only boost in air mode)
                 if (Config.OnlyBoostInAir)
