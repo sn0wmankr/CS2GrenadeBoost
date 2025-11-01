@@ -55,7 +55,7 @@ public class GrenadeBoostConfig : BasePluginConfig
     public bool OnlyBoostInAir { get; set; } = false;
 
     [JsonPropertyName("IgnoreTeamGrenades")]
-    public bool IgnoreTeamGrenades { get; set; } = false;
+    public bool IgnoreTeamGrenades { get; set; } = true;
 }
 
 public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
