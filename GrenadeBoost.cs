@@ -54,8 +54,8 @@ public class GrenadeBoostConfig : BasePluginConfig
     [JsonPropertyName("OnlyBoostInAir")]
     public bool OnlyBoostInAir { get; set; } = false;
 
-    [JsonPropertyName("OnlyBoostFromOwnTeam")]
-    public bool OnlyBoostFromOwnTeam { get; set; } = false;
+    [JsonPropertyName("IgnoreTeamGrenades")]
+    public bool IgnoreTeamGrenades { get; set; } = false;
 }
 
 public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
@@ -297,11 +297,11 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
                 if (playerPos == null)
                     continue;
 
-                // Check if should only boost from own team
-                if (Config.OnlyBoostFromOwnTeam)
+                // Check if should ignore team grenades
+                if (Config.IgnoreTeamGrenades)
                 {
-                    // Skip if grenade thrower and player are on different teams
-                    if (userId.TeamNum != player.TeamNum)
+                    // Skip if grenade thrower and player are on same team
+                    if (userId.TeamNum == player.TeamNum)
                     {
                         continue;
                     }

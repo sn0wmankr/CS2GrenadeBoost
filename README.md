@@ -68,7 +68,7 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
   "DisableHEGrenadeDamage": false,
   "DisableFallDamage": false,
   "OnlyBoostInAir": false,
-  "OnlyBoostFromOwnTeam": false
+  "IgnoreTeamGrenades": false
 }
 ```
 
@@ -93,7 +93,7 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 | `DisableHEGrenadeDamage` | bool | `false` | Negate all HE grenade damage (restores health, capped at max) |
 | `DisableFallDamage` | bool | `false` | Negate all fall damage using `sv_falldamage_scale 0` |
 | `OnlyBoostInAir` | bool | `false` | Only boost players in the air (ignore players on ground) |
-| `OnlyBoostFromOwnTeam` | bool | `false` | Only boost from same team grenades (ignore enemy grenades) |
+| `IgnoreTeamGrenades` | bool | `false` | Ignore same team grenades (only boost from enemy grenades) |
 
 **Apply changes:** `css_plugins reload GrenadeBoost`
 
