@@ -38,6 +38,9 @@ public class GrenadeBoostConfig : BasePluginConfig
     [JsonPropertyName("MaxBoostVelocity")]
     public float MaxBoostVelocity { get; set; } = 3500.0f;
 
+    [JsonPropertyName("ExplosionRadius")]
+    public float ExplosionRadius { get; set; } = 350.0f;
+
     // === Gameplay Features ===
     [JsonPropertyName("EnableAirAccuracy")]
     public bool EnableAirAccuracy { get; set; } = false;
@@ -47,12 +50,15 @@ public class GrenadeBoostConfig : BasePluginConfig
 
     [JsonPropertyName("DisableFallDamage")]
     public bool DisableFallDamage { get; set; } = false;
+
+    [JsonPropertyName("OnlyBoostInAir")]
+    public bool OnlyBoostInAir { get; set; } = false;
 }
 
 public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
 {
     public override string ModuleName => "CS2GrenadeBoost";
-    public override string ModuleVersion => "1.0.2";
+    public override string ModuleVersion => "1.0.3";
     public override string ModuleAuthor => "sn0wman";
     public override string ModuleDescription => "Allows players to boost themselves by throwing grenades on the ground";
 
@@ -288,12 +294,22 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
                 if (playerPos == null)
                     continue;
 
+                // Check if player is on ground (only boost in air mode)
+                if (Config.OnlyBoostInAir)
+                {
+                    var flags = (PlayerFlags)playerPawn.Flags;
+                    if (flags.HasFlag(PlayerFlags.FL_ONGROUND))
+                    {
+                        continue; // Skip players on ground
+                    }
+                }
+
                 // Calculate distance between player and grenade
                 Vector3 playerPosVec = new Vector3(playerPos.X, playerPos.Y, playerPos.Z);
                 float distance = Vector3.Distance(playerPosVec, grenadePos);
 
-                // HE grenade explosion radius is approximately 350 units
-                float maxRadius = 350.0f;
+                // Use configurable explosion radius
+                float maxRadius = Config.ExplosionRadius;
 
                 if (distance < maxRadius)
                 {
