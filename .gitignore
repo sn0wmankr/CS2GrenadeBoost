@@ -10,3 +10,7 @@
 # Keep examples folder
 !examples/
 !examples/**/*
+
+# Ignore release files
+RELEASE_DISCORD.md
+RELEASE_NOTES.md
