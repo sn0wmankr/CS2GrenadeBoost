@@ -52,7 +52,7 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 
 ```json
 {
-  "Version": 2,
+  "Version": 3,
   "Enabled": true,
   
   "AutoGiveHEGrenade": true,
@@ -77,7 +77,7 @@ addons/counterstrikesharp/configs/plugins/GrenadeBoost/GrenadeBoost.json
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | **General** |
-| `Version` | int | `2` | Config file version (auto-managed) |
+| `Version` | int | `3` | Config file version (auto-managed) |
 | `Enabled` | bool | `true` | Master switch for the plugin |
 | **Grenade Settings** |
 | `AutoGiveHEGrenade` | bool | `true` | Automatically give HE grenades at round start |

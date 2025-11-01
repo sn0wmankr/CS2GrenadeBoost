@@ -78,9 +78,9 @@ public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
         Config = config;
         
         // Ensure Version is set correctly
-        if (Config.Version < 2)
+        if (Config.Version < 3)
         {
-            Config.Version = 2;
+            Config.Version = 3;
         }
         
         // Setup ConVars
