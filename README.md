@@ -4,7 +4,7 @@
 
 A Counter-Strike 2 plugin that allows players to boost themselves by throwing HE grenades on the ground
 
-[![CounterStrikeSharp](https://img.shields.io/badge/CounterStrikeSharp-v1.0.345%2B-blue)](https://github.com/roflmuffin/CounterStrikeSharp)
+[![CounterStrikeSharp](https://img.shields.io/badge/CounterStrikeSharp-v1.0.346%2B-blue)](https://github.com/roflmuffin/CounterStrikeSharp)
 
 </div>
 
@@ -19,7 +19,7 @@ A Counter-Strike 2 plugin that allows players to boost themselves by throwing HE
 
 ## 📦 Requirements
 
-- **[CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp)** v1.0.345 or newer
+- **[CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp)** v1.0.346 or newer
 - **.NET 8.0 SDK** (for building from source)
 - **Compatible with other plugins** including WeaponPaints
 
