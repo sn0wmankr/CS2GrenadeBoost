@@ -11,6 +11,10 @@
 !examples/
 !examples/**/*
 
+# Ignore build outputs
+bin/
+obj/
+
 # Ignore release files
 RELEASE_DISCORD.md
 RELEASE_NOTES.md

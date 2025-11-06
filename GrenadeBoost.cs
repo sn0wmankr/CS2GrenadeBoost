@@ -61,7 +61,7 @@ public class GrenadeBoostConfig : BasePluginConfig
 public class GrenadeBoost : BasePlugin, IPluginConfig<GrenadeBoostConfig>
 {
     public override string ModuleName => "CS2GrenadeBoost";
-    public override string ModuleVersion => "1.0.4";
+    public override string ModuleVersion => "1.0.5";
     public override string ModuleAuthor => "sn0wman";
     public override string ModuleDescription => "Allows players to boost themselves by throwing grenades on the ground";
 
